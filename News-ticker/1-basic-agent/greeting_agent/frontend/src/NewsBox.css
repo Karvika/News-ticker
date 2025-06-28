@@ -1,0 +1,138 @@
+.app-container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+.sidebar {
+    width: 250px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    padding: 20px;
+    color: white;
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+}
+
+.news-box {
+    max-width: 800px;
+    margin: 20px;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background-color: white;
+}
+
+.header-badges {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge.google-adk {
+    background-color: #4285f4;
+    color: white;
+}
+
+.badge.live {
+    background-color: #34d399;
+    color: white;
+}
+
+.badge.update {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.badge.gemini {
+    background-color: #8b5cf6;
+    color: white;
+}
+
+.description {
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.last-updated {
+    color: #9ca3af;
+    font-size: 0.9em;
+    margin-bottom: 20px;
+}
+
+.news-list {
+    list-style: none;
+    padding: 0;
+}
+
+.news-item {
+    display: flex;
+    gap: 15px;
+    padding: 15px 0;
+    border-bottom: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.news-item:last-child {
+    border-bottom: none;
+}
+
+.news-item:hover {
+    background-color: #f8fafc;
+}
+
+.news-number {
+    color: #6366f1;
+    font-weight: 600;
+    min-width: 30px;
+}
+
+.news-content {
+    flex: 1;
+}
+
+.news-title {
+    color: #1f2937;
+    font-weight: 500;
+    margin-bottom: 5px;
+    line-height: 1.4;
+}
+
+.timestamp {
+    color: #9ca3af;
+    font-size: 0.8em;
+}
+
+.live-badge {
+    background-color: #ef4444;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    margin-left: 8px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
