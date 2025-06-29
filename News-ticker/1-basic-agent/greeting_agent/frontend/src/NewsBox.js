@@ -15,6 +15,7 @@ function NewsBox() {
         try {
             const response = await fetch('http://localhost:5000/api/news');
             const data = await response.json();
+            // Data is already sorted with latest news first
             setNews(data);
             setLastUpdated(new Date().toLocaleTimeString());
         } catch (error) {
@@ -47,15 +48,15 @@ function NewsBox() {
                     </div>
                     
                     <ul className="news-list">
-                        {news.map((item) => (
-                            <li key={item.id} className="news-item">
+                        {news.map((item, index) => (
+                            <li key={`${item.id}-${index}`} className="news-item">
                                 <div className="news-number">{item.id}</div>
                                 <div className="news-content">
                                     <div className="news-title">
                                         {item.title}
-                                        {item.isLatest && <span className="live-badge">LIVE</span>}
+                                        {item.isLatest && <span className="live-badge">LATEST</span>}
                                     </div>
-                                    <div className="timestamp">{item.timestamp}</div>
+                                    <div className="timestamp">Released: {item.timestamp}</div>
                                 </div>
                             </li>
                         ))}

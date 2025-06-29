@@ -1,124 +1,300 @@
-# Basic ADK Agent Example
+# AI News Ticker - Google ADK Application
 
-## What is an ADK Agent?
+## What is this Project?
 
-The `LlmAgent` (often aliased simply as `Agent`) is a core component in ADK that acts as the "thinking" part of your application. It leverages the power of a Large Language Model (LLM) for:
-- Reasoning
-- Understanding natural language
-- Making decisions
-- Generating responses
-- Interacting with tools
+This AI News Ticker is a real-time news application built with **Google ADK (Agent Development Kit)** that fetches and displays the latest AI-related news headlines. The application combines:
+- **Real-time news fetching** from multiple sources (RSS feeds, NewsAPI)
+- **Google ADK agent architecture** for scalable AI tool integration
+- **React frontend** for modern, responsive UI
+- **Flask backend** for API services
+- **Gemini AI integration** for intelligent content processing
 
-Unlike deterministic workflow agents that follow predefined paths, an `LlmAgent`'s behavior is non-deterministic. It uses the LLM to interpret instructions and context, deciding dynamically how to proceed, which tools to use (if any), or whether to transfer control to another agent.
-
-## Required Agent Structure
-
-For ADK to discover and run your agents properly (especially with `adk web`), your project must follow a specific structure:
+## Architecture Overview
 
 ```
-parent_folder/
-    agent_folder/         # This is your agent's package directory
-        __init__.py       # Must import agent.py
-        agent.py          # Must define root_agent
-        .env              # Environment variables
+React Frontend (Port 3000) ↔ Flask API (Port 5000) ↔ Google ADK Agent ↔ News Sources
+     ↓                           ↓                       ↓                   ↓
+ NewsBox UI              /api/news endpoint      RealNewsUpdateTool    RSS Feeds + NewsAPI
+```
+
+The application uses Google ADK's `LlmAgent` with a custom tool (`RealNewsUpdateTool`) that:
+- Fetches news from multiple RSS feeds and NewsAPI
+- Filters content for AI-related keywords
+- Sorts articles chronologically (latest first)
+- Maintains a FIFO queue of 5 most recent articles
+- Provides fallback headlines when sources fail
+
+## Project Structure
+
+This AI News Ticker follows the ADK agent structure requirements:
+
+```
+News-ticker/
+├── 1-basic-agent/
+│   └── greeting_agent/           # ADK Agent package directory
+│       ├── __init__.py          # Imports agent module
+│       ├── agent.py             # Defines root_agent with RealNewsUpdateTool
+│       ├── app.py               # Flask API server
+│       ├── .env                 # Environment variables (API keys)
+│       ├── .env.example         # Environment template
+│       └── frontend/            # React application
+│           ├── package.json
+│           ├── public/
+│           │   ├── index.html
+│           │   └── manifest.json
+│           └── src/
+│               ├── index.js
+│               ├── index.css
+│               ├── NewsBox.js   # Main news component
+│               └── NewsBox.css  # Styling
+├── requirements.txt             # Python dependencies
+├── .gitignore                  # Git ignore rules
+└── README.md                   # This file
 ```
 
 ### Essential Components:
 
-1. **`__init__.py`**
-   - Must import the agent module: `from . import agent`
-   - This makes your agent discoverable by ADK
+1. **`agent.py`** - Contains the Google ADK agent with RealNewsUpdateTool
+2. **`app.py`** - Flask server that integrates with the ADK agent
+3. **`frontend/`** - React application for the news ticker UI
+4. **`.env`** - Contains API keys for Google AI and NewsAPI
 
-2. **`agent.py`**
-   - Must define a variable named `root_agent`
-   - This is the entry point that ADK uses to find your agent
+## Key Google ADK Components
 
-3. **Command Location**
-   - Always run `adk` commands from the parent directory, not from inside the agent directory
-   - Example: Run `adk web` from the parent folder that contains your agent folder
+### 1. Agent Configuration (`root_agent`)
+```python
+root_agent = Agent(
+    name="real_ai_news_agent",
+    model="gemini-pro",                    # Gemini AI model
+    description="Real AI News headlines agent using live news sources",
+    instruction="Fetch and return the latest real AI news headlines from news APIs and RSS feeds.",
+    tools=[real_news_tool_instance]        # Custom news fetching tool
+)
+```
 
-This structure ensures that ADK can automatically discover and load your agent when running commands like `adk web` or `adk run`.
+### 2. Custom Tool (`RealNewsUpdateTool`)
+Inherits from `google.adk.tools.base_tool.BaseTool` and implements:
+- **News Source Integration**: RSS feeds (TechCrunch, Ars Technica, ZDNet, etc.) and NewsAPI
+- **AI Content Filtering**: Searches for AI-related keywords (OpenAI, ChatGPT, machine learning, etc.)
+- **Date Filtering**: Only includes articles from the last 30 days
+- **Chronological Sorting**: Most recent articles first
+- **FIFO Queue Management**: Maintains exactly 5 news items
+- **Error Handling**: SSL bypass, retry logic, fallback content
 
-## Key Components
+### 3. Gemini AI Integration
+- **Model**: `gemini-pro` for intelligent content processing
+- **Configuration**: Via `google.generativeai.configure()`
+- **Purpose**: Potential content enhancement and fallback generation
+- **API Key**: Secured via environment variables
 
-### 1. Identity (`name` and `description`)
-- **name** (Required): A unique string identifier for your agent
-- **description** (Optional, but recommended): A concise summary of the agent's capabilities. Used for other agents to determine if they should route a task to this agent.
+### 4. Tool Execution Flow
+```python
+def execute(self, inputs=None):
+    # 1. Fetch from RSS feeds and NewsAPI
+    # 2. Filter by AI keywords and recent dates
+    # 3. Sort chronologically
+    # 4. Build FIFO queue with 5 items
+    # 5. Return JSON formatted news
+```
 
-### 2. Model (`model`)
-- Specifies which LLM powers the agent (e.g., "gemini-2.0-flash")
-- Affects the agent's capabilities, cost, and performance
+## Features
 
-### 3. Instructions (`instruction`)
-The most critical parameter for shaping your agent's behavior. It defines:
-- Core task or goal
-- Personality or persona
-- Behavioral constraints
-- How to use available tools
-- Desired output format
+### 🔄 Real-Time News Updates
+- Fetches latest AI news every 5 seconds
+- Displays the most recent article with "LATEST" badge
+- Chronological ordering (newest to oldest)
 
-### 4. Tools (`tools`)
-Optional capabilities beyond the LLM's built-in knowledge, allowing the agent to:
-- Interact with external systems
-- Perform calculations
-- Fetch real-time data
-- Execute specific actions
+### 📰 Multiple News Sources
+- **RSS Feeds**: TechCrunch, Ars Technica, ZDNet, VentureBeat, Wired, etc.
+- **NewsAPI**: Additional coverage from major tech publications
+- **Fallback Headlines**: Curated content when sources fail
+
+### 🤖 AI-Powered Content Filtering
+- Smart keyword matching for AI-related content
+- Filters for: OpenAI, ChatGPT, machine learning, AI research, etc.
+- Recent content only (last 30 days)
+
+### 📱 Modern UI/UX
+- Responsive React frontend
+- Clean, modern design with gradient backgrounds
+- FIFO queue visualization (5 items maximum)
+- Real publication timestamps
+- Source attribution for each article
+
+### 🛡️ Robust Error Handling
+- SSL certificate bypass for problematic feeds
+- Retry mechanisms for network failures
+- Graceful fallback to curated content
+- Comprehensive logging and debugging
+
+## How It Works
+
+### Data Flow
+```
+1. Frontend (React) requests news every 5 seconds
+   ↓
+2. Flask API calls ADK agent's tool
+   ↓
+3. RealNewsUpdateTool fetches from multiple sources
+   ↓
+4. Content is filtered, sorted, and formatted
+   ↓
+5. JSON response returns to frontend
+   ↓
+6. UI updates with latest news in FIFO order
+```
+
+### News Processing Pipeline
+1. **Fetch**: Retrieve articles from RSS feeds and NewsAPI
+2. **Filter**: Apply AI keyword matching and date filtering
+3. **Sort**: Order by actual publication date (most recent first)
+4. **Queue**: Maintain FIFO queue with exactly 5 items
+5. **Format**: Structure data for frontend consumption
+6. **Serve**: Return JSON response via Flask API
+
+## API Endpoints
+
+### GET /api/news
+Returns the current news queue as JSON:
+
+```json
+[
+  {
+    "id": "1",
+    "title": "OpenAI releases GPT-4 Turbo with enhanced capabilities",
+    "timestamp": "Released: 02:30 PM - Jun 29",
+    "isLatest": true,
+    "source": "TechCrunch",
+    "url": "https://..."
+  },
+  // ... 4 more items
+]
+```
 
 ## Getting Started
 
-This example uses the same virtual environment created in the root directory. Make sure you have:
+### Prerequisites
 
-1. Activated the virtual environment from the root directory:
+1. **Python Environment**: Ensure you have Python 3.8+ installed
+2. **Node.js**: Required for the React frontend (Node 14+ recommended)
+3. **API Keys**: 
+   - Google AI API key (required)
+   - NewsAPI key (optional, for additional news sources)
+
+### Installation & Setup
+
+1. **Clone and Navigate**:
 ```bash
-# macOS/Linux:
-source ../.venv/bin/activate
-# Windows CMD:
-..\.venv\Scripts\activate.bat
-# Windows PowerShell:
-..\.venv\Scripts\Activate.ps1
+cd News-ticker/1-basic-agent/greeting_agent
 ```
 
-2. Set up your API key:
-   - Rename `.env.example` to `.env` in the greeting_agent folder
-   - Add your Google API key to the `GOOGLE_API_KEY` variable in the `.env` file
-
-## Running the Example
-
-To run this basic agent example, you'll use the ADK CLI tool which provides several ways to interact with your agent:
-
-1. Navigate to the 1-basic-agent directory containing your agent folder.
-2. Start the interactive web UI:
+2. **Install Python Dependencies**:
 ```bash
+pip install -r ../../../requirements.txt
+```
+
+3. **Set up Environment Variables**:
+```bash
+# Copy the environment template
+cp .env.example .env
+
+# Edit .env and add your API keys:
+GOOGLE_API_KEY=your_google_ai_api_key_here
+NEWS_API_KEY=your_newsapi_key_here  # Optional
+```
+
+4. **Install Frontend Dependencies**:
+```bash
+cd frontend
+npm install
+```
+
+### Running the Application
+
+#### Method 1: Full Stack Application (Recommended)
+
+1. **Start the Flask Backend**:
+```bash
+# From greeting_agent directory
+python app.py
+```
+The Flask API will run on `http://localhost:5000`
+
+2. **Start the React Frontend** (in a new terminal):
+```bash
+# From greeting_agent/frontend directory
+npm start
+```
+The React app will run on `http://localhost:3000`
+
+3. **Access the Application**:
+Open `http://localhost:3000` in your browser to see the AI News Ticker in action!
+
+#### Method 2: ADK Development Mode
+
+You can also test the agent using ADK's built-in tools:
+
+1. **ADK Web UI**:
+```bash
+# From 1-basic-agent directory
 adk web
 ```
+Access at `http://localhost:8000`
 
-3. Access the web UI by opening the URL shown in your terminal (typically http://localhost:8000)
+2. **ADK Terminal**:
+```bash
+adk run real_ai_news_agent
+```
 
-4. Select your agent from the dropdown menu in the top-left corner of the UI
+3. **ADK API Server**:
+```bash
+adk api_server
+```
 
-5. Start chatting with your agent in the textbox at the bottom of the screen
+## Troubleshooting
 
-### Troubleshooting
+### Common Issues
 
-If your agent doesn't appear in the dropdown menu:
-- Make sure you're running `adk web` from the parent directory (1-basic-agent), not from inside the agent directory
-- Check that your `__init__.py` properly imports the agent module
-- Verify that `agent.py` defines a variable named `root_agent`
+1. **No News Appearing**:
+   - Check if Flask server is running on port 5000
+   - Verify internet connection for RSS feeds
+   - Check console for error messages
 
-### Alternative Run Methods
+2. **API Key Errors**:
+   - Ensure `.env` file exists with valid `GOOGLE_API_KEY`
+   - NewsAPI key is optional but recommended
 
-The ADK CLI tool provides several options:
+3. **SSL Certificate Errors**:
+   - The app includes SSL bypass mechanisms
+   - Check terminal output for specific feed failures
 
-- **`adk web`**: Launches an interactive web UI for testing your agent with a chat interface
-- **`adk run [agent_name]`**: Runs your agent directly in the terminal
-- **`adk api_server`**: Starts a FastAPI server to test API requests to your agent
+4. **Old News Appearing**:
+   - The app filters for articles from last 30 days
+   - Some RSS feeds may have stale content
+   - Fallback headlines provide fresh content when needed
 
-### Example Prompts to Try
+### Development Tips
 
-- "How do you say hello in Spanish?"
-- "What's a formal greeting in Japanese?"
-- "Tell me how to greet someone in French"
+- **Backend Debugging**: Check Flask terminal for detailed logs
+- **Frontend Debugging**: Open browser developer tools
+- **ADK Testing**: Use `adk web` for direct agent interaction
+- **API Testing**: Test `/api/news` endpoint directly in browser
 
-You can exit the conversation or stop the server by pressing `Ctrl+C` in your terminal.
+## Technical Stack
 
-This example demonstrates a simple agent that responds to greeting-related queries, showing the fundamentals of agent creation with ADK.
+- **Backend**: Python, Flask, Google ADK, Gemini AI
+- **Frontend**: React, JavaScript, CSS
+- **News Sources**: RSS feeds, NewsAPI
+- **Development**: Git, Environment variables
+- **Deployment**: Local development server
+
+## Contributing
+
+To extend this application:
+
+1. **Add News Sources**: Modify the `reliable_feeds` list in `agent.py`
+2. **Enhance Filtering**: Update `ai_keywords` for better content matching
+3. **UI Improvements**: Modify React components in `frontend/src/`
+4. **New Features**: Add additional tools to the ADK agent
+
+This AI News Ticker demonstrates the power of Google ADK for building intelligent, real-time applications with modern web technologies.
