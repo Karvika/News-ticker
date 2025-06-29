@@ -104,10 +104,16 @@ def execute(self, inputs=None):
 - Displays the most recent article with "LATEST" badge
 - Chronological ordering (newest to oldest)
 
-### 📰 Multiple News Sources
+### 📰 Interactive News Experience
+- **Clickable Headlines**: Click any news title to read the full article
+- **External Links**: Direct links to original news sources (🔗 indicator)
+- **Article Details Modal**: Shows source, timestamp, and link when URL unavailable
+- **Source Attribution**: Clear source identification for each article
+
+### 📡 Multiple News Sources
 - **RSS Feeds**: TechCrunch, Ars Technica, ZDNet, VentureBeat, Wired, etc.
 - **NewsAPI**: Additional coverage from major tech publications
-- **Fallback Headlines**: Curated content when sources fail
+- **Fallback Headlines**: Curated content with working links when sources fail
 
 ### 🤖 AI-Powered Content Filtering
 - Smart keyword matching for AI-related content
@@ -115,11 +121,14 @@ def execute(self, inputs=None):
 - Recent content only (last 30 days)
 
 ### 📱 Modern UI/UX
-- Responsive React frontend
+- Responsive React frontend with smooth animations
 - Clean, modern design with gradient backgrounds
 - FIFO queue visualization (5 items maximum)
-- Real publication timestamps
-- Source attribution for each article
+- Real publication timestamps and source information
+- **Interactive Elements**: Clickable headlines with hover effects
+- **Article Access**: Direct links to full articles in new tabs
+- **Modal Details**: Popup with article metadata and actions
+- **Visual Indicators**: Link icons and hover animations
 
 ### 🛡️ Robust Error Handling
 - SSL certificate bypass for problematic feeds
@@ -165,11 +174,18 @@ Returns the current news queue as JSON:
     "timestamp": "Released: 02:30 PM - Jun 29",
     "isLatest": true,
     "source": "TechCrunch",
-    "url": "https://..."
+    "url": "https://techcrunch.com/article-url"
   },
   // ... 4 more items
 ]
 ```
+
+### User Interactions
+
+- **Click Headlines**: Clicking a news title opens the full article in a new tab
+- **Link Indicators**: Headlines with available links show a 🔗 icon
+- **Modal Fallback**: If no direct link, clicking shows an article details modal
+- **Hover Effects**: Visual feedback when hovering over clickable elements
 
 ## Getting Started
 

@@ -282,37 +282,44 @@ class RealNewsUpdateTool(BaseTool):
                 {
                     'title': 'OpenAI unveils GPT-4 Turbo with enhanced multimodal capabilities',
                     'timestamp': datetime.now().strftime("%I:%M %p - %b %d"),
-                    'source': 'AI Research Daily'
+                    'source': 'AI Research Daily',
+                    'url': 'https://openai.com/blog'
                 },
                 {
                     'title': 'Google DeepMind achieves breakthrough in quantum AI computing',
                     'timestamp': (datetime.now() - timedelta(hours=1)).strftime("%I:%M %p - %b %d"),
-                    'source': 'Tech Innovation Hub'
+                    'source': 'Tech Innovation Hub',
+                    'url': 'https://deepmind.google/research/'
                 },
                 {
                     'title': 'Microsoft Copilot integration expands to enterprise workflows',
                     'timestamp': (datetime.now() - timedelta(hours=2)).strftime("%I:%M %p - %b %d"),
-                    'source': 'Enterprise AI Weekly'
+                    'source': 'Enterprise AI Weekly',
+                    'url': 'https://blogs.microsoft.com/ai/'
                 },
                 {
                     'title': 'Meta launches new AI model with improved reasoning capabilities',
                     'timestamp': (datetime.now() - timedelta(hours=3)).strftime("%I:%M %p - %b %d"),
-                    'source': 'ML Development News'
+                    'source': 'ML Development News',
+                    'url': 'https://ai.meta.com/blog/'
                 },
                 {
                     'title': 'Anthropic Claude 3 sets new benchmarks in AI safety research',
                     'timestamp': (datetime.now() - timedelta(hours=4)).strftime("%I:%M %p - %b %d"),
-                    'source': 'AI Safety Institute'
+                    'source': 'AI Safety Institute',
+                    'url': 'https://www.anthropic.com/news'
                 },
                 {
                     'title': 'NVIDIA announces next-generation AI chips for data centers',
                     'timestamp': (datetime.now() - timedelta(hours=5)).strftime("%I:%M %p - %b %d"),
-                    'source': 'Hardware Today'
+                    'source': 'Hardware Today',
+                    'url': 'https://blogs.nvidia.com/blog/category/artificial-intelligence/'
                 },
                 {
                     'title': 'Apple Intelligence integrates advanced AI across iOS ecosystem',
                     'timestamp': (datetime.now() - timedelta(hours=6)).strftime("%I:%M %p - %b %d"),
-                    'source': 'Mobile Tech News'
+                    'source': 'Mobile Tech News',
+                    'url': 'https://www.apple.com/newsroom/ai/'
                 }
             ]
             
@@ -343,27 +350,32 @@ class RealNewsUpdateTool(BaseTool):
             {
                 'title': 'OpenAI launches new GPT-4 Turbo with vision capabilities and reduced pricing',
                 'timestamp': (now - timedelta(hours=2)).strftime("%I:%M %p - %b %d"),
-                'source': 'AI News'
+                'source': 'AI News',
+                'url': 'https://openai.com/blog'
             },
             {
                 'title': 'Google DeepMind announces breakthrough in protein folding with AlphaFold 3',
                 'timestamp': (now - timedelta(hours=4)).strftime("%I:%M %p - %b %d"),
-                'source': 'Tech Daily'
+                'source': 'Tech Daily',
+                'url': 'https://deepmind.google/research/'
             },
             {
                 'title': 'Microsoft integrates advanced AI copilot features across Office 365 suite',
                 'timestamp': (now - timedelta(hours=6)).strftime("%I:%M %p - %b %d"),
-                'source': 'Enterprise Tech'
+                'source': 'Enterprise Tech',
+                'url': 'https://blogs.microsoft.com/ai/'
             },
             {
                 'title': 'Meta releases Llama 3 with improved multilingual support and reasoning',
                 'timestamp': (now - timedelta(hours=8)).strftime("%I:%M %p - %b %d"),
-                'source': 'ML Research'
+                'source': 'ML Research',
+                'url': 'https://ai.meta.com/blog/'
             },
             {
                 'title': 'Anthropic Claude 3 achieves new benchmarks in safety and helpfulness metrics',
                 'timestamp': (now - timedelta(hours=10)).strftime("%I:%M %p - %b %d"),
-                'source': 'AI Safety News'
+                'source': 'AI Safety News',
+                'url': 'https://www.anthropic.com/news'
             }
         ]
         
