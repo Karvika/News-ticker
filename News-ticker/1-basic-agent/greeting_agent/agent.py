@@ -49,314 +49,214 @@ class RealNewsUpdateTool(BaseTool):
         self.news_queue = [] 
         self.max_news_items = 5  # Fixed to show exactly 5 news items
         
-        # Initialize news sources
+        # Initialize news sources with custom session
         self.newsapi_client = None
         if news_api_key:
             try:
-                self.newsapi_client = NewsApiClient(api_key=news_api_key)
-                print("NewsAPI client initialized successfully")
+                # Create a session with SSL verification disabled
+                session = requests.Session()
+                session.verify = False
+                
+                # Create the NewsAPI client with our custom session
+                self.newsapi_client = NewsApiClient(
+                    api_key=news_api_key,
+                    session=session
+                )
+                print("NewsAPI client initialized successfully with custom SSL handling")
             except Exception as e:
                 print(f"NewsAPI initialization failed: {str(e)}")
         
-        # RSS feeds for AI news and tech news (primary sources) - Focused on Software and AI
+        # RSS feeds for tech news and innovations
         self.rss_feeds = [
-            # AI and ML Specific
-            "https://feeds.feedburner.com/venturebeat/SZYF",  # VentureBeat AI
-            "https://techcrunch.com/category/artificial-intelligence/feed/",  # TechCrunch AI
-            "https://www.artificialintelligence-news.com/feed/",  # AI News
-            "https://blog.google/technology/ai/rss/",  # Google AI Blog
-            "https://blogs.microsoft.com/ai/feed/",  # Microsoft AI Blog
-            "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",  # The Verge AI
-            "https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml",  # ScienceDaily AI
+            # Tech Innovation News
+            "https://www.techradar.com/rss",  # TechRadar
+            "https://www.engadget.com/rss.xml",  # Engadget
+            "https://www.theverge.com/rss/index.xml",  # The Verge
+            "https://feeds.feedburner.com/TechCrunch",  # TechCrunch
+            "https://www.wired.com/feed/rss",  # Wired
+            "https://www.zdnet.com/news/rss.xml",  # ZDNet
+            "https://www.digitaltrends.com/feed",  # Digital Trends
+            "https://gizmodo.com/rss",  # Gizmodo
             
-            # Software Development News
-            "https://stackoverflow.blog/feed/",  # Stack Overflow Blog
-            "https://github.blog/feed/",  # GitHub Blog
-            "https://dev.to/feed",  # DEV Community
-            "https://www.infoq.com/feed/",  # InfoQ
-            "https://www.joelonsoftware.com/feed/",  # Joel on Software
-            "https://martinfowler.com/feed.atom",  # Martin Fowler
+            # Enterprise & Innovation
+            "https://www.computerworld.com/index.rss",  # ComputerWorld
+            "https://www.cnet.com/rss/news/",  # CNET News
+            "https://feeds.feedburner.com/venturebeat/SZYF",  # VentureBeat
+            "https://www.techspot.com/backend.xml",  # TechSpot
             
-            # Tech Programming News
-            "https://news.ycombinator.com/rss",  # Hacker News
-            "https://feeds.feedburner.com/codinghorror",  # Coding Horror
-            "https://www.codeproject.com/WebServices/NewsRSS.aspx",  # Code Project
-            "https://sdtimes.com/feed/",  # SD Times
-            "https://www.javaworld.com/index.rss",  # JavaWorld
-            "https://www.pythonweekly.com/rss/",  # Python Weekly
+            # Emerging Tech
+            "https://www.newscientist.com/subject/technology/feed/",  # New Scientist Tech
+            "https://spectrum.ieee.org/rss",  # IEEE Spectrum
+            "https://www.technologyreview.com/feed/",  # MIT Technology Review
+            "https://www.scientificamerican.com/tech.rss",  # Scientific American Tech
+            
+            # Gadgets & Consumer Tech
+            "https://www.slashgear.com/feed/",  # SlashGear
+            "https://www.tomsguide.com/feeds/all",  # Tom's Guide
+            "https://www.androidcentral.com/feed",  # Android Central
+            "https://appleinsider.com/rss/news/",  # AppleInsider
         ]
 
     def fetch_from_newsapi(self):
-        """Fetch real AI news from NewsAPI"""
+        """Fetch technology news from NewsAPI"""
         if not self.newsapi_client:
             print("NewsAPI client not available, skipping...")
             return []
         
         try:
-            print("Attempting to fetch from NewsAPI...")
-            # Disable SSL verification for NewsAPI
-            import ssl
-            ssl._create_default_https_context = ssl._create_unverified_context
+            print("Fetching from NewsAPI...")
             
-            # Search for AI and software tech news with SSL bypass
-            articles = self.newsapi_client.get_everything(
-                q='(software development OR programming OR artificial intelligence OR AI OR machine learning OR OpenAI OR ChatGPT OR coding OR developer tools OR programming languages OR GitHub OR software engineering)',
+            # Simple query for all tech news with optimized parameters
+            tech_articles = self.newsapi_client.get_everything(
+                q='technology OR innovation OR software OR hardware OR gadget OR app OR startup',
                 language='en',
                 sort_by='publishedAt',
-                page_size=10
+                page_size=10  # Keep this small for faster response
             )
             
             news_items = []
-            for article in articles.get('articles', [])[:5]:
-                if article['title'] and article['title'].lower() != '[removed]':
-                    # Parse the published date
-                    pub_date = datetime.fromisoformat(article['publishedAt'].replace('Z', '+00:00'))
-                    local_time = pub_date.replace(tzinfo=None)  # Convert to local time
-                    
-                    news_item = {
-                        'title': article['title'],
-                        'timestamp': local_time.strftime("%I:%M %p - %b %d"),
-                        'source': article.get('source', {}).get('name', 'Unknown'),
-                        'url': article['url']
-                    }
-                    news_items.append(news_item)
+            if 'articles' in tech_articles:
+                for article in tech_articles['articles'][:5]:  # Only process what we need
+                    if not article.get('title') or article['title'].lower() == '[removed]':
+                        continue
+                        
+                    try:
+                        pub_date = datetime.fromisoformat(article['publishedAt'].replace('Z', '+00:00'))
+                        local_time = pub_date.replace(tzinfo=None)
+                        
+                        # Use Gemini to categorize the news
+                        description = article.get('description', '')
+                        category = self.categorize_with_gemini(article['title'], description)
+                        print(f"🏷️ Categorized '{article['title'][:50]}...' as '{category}'")
+                        
+                        news_item = {
+                            'title': article['title'],
+                            'timestamp': local_time.strftime("%I:%M %p - %b %d"),
+                            'source': article.get('source', {}).get('name', 'Unknown'),
+                            'url': article['url'],
+                            'pub_date': local_time,
+                            'category': category
+                        }
+                        news_items.append(news_item)
+                        
+                        if len(news_items) >= 5:
+                            break
+                    except Exception as e:
+                        print(f"Error processing article: {str(e)}")
+                        continue
             
             print(f"Successfully fetched {len(news_items)} articles from NewsAPI")
             return news_items
             
         except Exception as e:
             print(f"NewsAPI fetch error: {str(e)}")
-            print("Falling back to RSS feeds...")
             return []
 
     def fetch_from_rss(self):
-        """Fetch AI news from RSS feeds with enhanced reliability"""
+        """Fetch technology news from RSS feeds"""
         print("Fetching from RSS feeds...")
         news_items = []
+        used_titles = set()  # Track unique titles across all feeds
         
-        # Prioritized list of reliable RSS feeds with RECENT AI content
+        # Main tech news sources
         reliable_feeds = [
             ("https://feeds.feedburner.com/TechCrunch", "TechCrunch"),
-            ("https://feeds.arstechnica.com/arstechnica/index", "Ars Technica"),
-            ("https://www.zdnet.com/news/rss.xml", "ZDNet"),
-            ("https://feeds.feedburner.com/venturebeat/SZYF", "VentureBeat AI"),
-            ("https://www.wired.com/feed/rss", "Wired"),
-            ("https://rss.cnn.com/rss/edition.rss", "CNN Tech"),
-            ("https://techcrunch.com/category/artificial-intelligence/feed/", "TechCrunch AI"),
             ("https://www.theverge.com/rss/index.xml", "The Verge"),
-            ("https://www.artificialintelligence-news.com/feed/", "AI News"),
+            ("https://www.wired.com/feed/rss", "Wired"),
+            ("https://www.engadget.com/rss.xml", "Engadget"),
+            ("https://feeds.arstechnica.com/arstechnica/index", "Ars Technica"),
+            ("https://www.cnet.com/rss/news/", "CNET"),
+            ("https://www.digitaltrends.com/feed", "Digital Trends"),
+            ("https://gizmodo.com/rss", "Gizmodo")
         ]
+        
+        # Create a session with SSL verification disabled
+        session = requests.Session()
+        session.verify = False
         
         for feed_url, feed_name in reliable_feeds:
             try:
-                print(f"Parsing RSS feed: {feed_name} ({feed_url})")
+                print(f"Checking {feed_name}...")
                 
-                # Enhanced headers to avoid bot detection
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'application/rss+xml,application/xml,text/xml',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'Cache-Control': 'no-cache',
-                    'Connection': 'keep-alive'
-                }
-                
-                # Use requests with custom headers and SSL handling
-                session = requests.Session()
-                session.verify = False  # Disable SSL verification for problematic feeds
-                
-                # Try with shorter timeout and retry mechanism for SSL errors
-                max_retries = 2
-                for attempt in range(max_retries):
-                    try:
-                        response = session.get(feed_url, headers=headers, timeout=12)
-                        break  # Success, exit retry loop
-                    except (requests.exceptions.SSLError, requests.exceptions.ConnectionError) as e:
-                        if attempt < max_retries - 1:
-                            print(f"SSL/Connection error for {feed_name} (attempt {attempt + 1}), retrying...")
-                            continue
-                        else:
-                            print(f"SSL/Connection error for {feed_name} after {max_retries} attempts, skipping...")
-                            raise e
-                    except requests.exceptions.Timeout:
-                        if attempt < max_retries - 1:
-                            print(f"Timeout for {feed_name} (attempt {attempt + 1}), retrying with longer timeout...")
-                            try:
-                                response = session.get(feed_url, headers=headers, timeout=20)
-                                break
-                            except:
-                                continue
-                        else:
-                            print(f"Final timeout for {feed_name}, skipping...")
-                            continue
-                
+                # Use the session with disabled SSL verification
+                response = session.get(feed_url, timeout=10)
                 if response.status_code != 200:
                     print(f"Failed to fetch {feed_name}: HTTP {response.status_code}")
                     continue
                     
-                # Parse the RSS feed
                 feed = feedparser.parse(response.content)
                 
                 if not feed.entries:
                     print(f"No entries found in {feed_name}")
                     continue
                 
-                print(f"Found {len(feed.entries)} entries in {feed_name}")
-                
-                # Enhanced AI keyword matching
-                ai_keywords = [
-                    # Core AI terms
-                    'artificial intelligence', 'AI', 'machine learning', 'ML', 'deep learning',
-                    'neural network', 'neural networks', 'computer vision', 'natural language processing',
-                    'NLP', 'algorithms', 'automation', 'robotics', 'autonomous',
-                    
-                    # AI Companies and Products
-                    'OpenAI', 'ChatGPT', 'GPT-4', 'GPT-3', 'Google AI', 'Microsoft AI', 'Meta AI',
-                    'Amazon AI', 'Tesla AI', 'Claude', 'Gemini', 'LLaMA', 'Llama', 'Anthropic',
-                    'Stability AI', 'Midjourney', 'DALL-E', 'Bard', 'Copilot',
-                    
-                    # AI Applications
-                    'chatbot', 'voice assistant', 'generative AI', 'LLM', 'large language model',
-                    'transformer', 'diffusion', 'text-to-image', 'image generation', 'code generation',
-                    'AI training', 'AI model', 'AI chip', 'AI hardware', 'AI research'
-                ]
-                
-                for entry in feed.entries[:15]:  # Check more entries for AI content
-                    title = entry.title.strip()
-                    description = getattr(entry, 'summary', '').strip()
-                    
-                    # Check both title and description for AI keywords
-                    content_to_check = (title + ' ' + description).lower()
-                    is_ai_related = any(keyword.lower() in content_to_check for keyword in ai_keywords)
-                    
-                    if is_ai_related and len(title) > 10:  # Remove duplicate check for now
-                        # Handle different date formats more robustly
-                        try:
-                            if hasattr(entry, 'published_parsed') and entry.published_parsed:
-                                pub_date = datetime(*entry.published_parsed[:6])
-                            elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
-                                pub_date = datetime(*entry.updated_parsed[:6])
-                            elif hasattr(entry, 'published'):
-                                # Try to parse published string
-                                import dateutil.parser
-                                pub_date = dateutil.parser.parse(entry.published)
-                            else:
-                                # Fallback to current time with some offset
-                                pub_date = datetime.now() - timedelta(hours=len(news_items))
-                        except:
-                            pub_date = datetime.now() - timedelta(hours=len(news_items))
-                        
-                        # Only include articles from the last 30 days (recent news only)
-                        days_old = (datetime.now() - pub_date).days
-                        if days_old > 30:
-                            print(f"⏰ Skipping old article ({days_old} days old): {title[:50]}...")
+                # Only take up to 2 unique articles from each feed
+                feed_count = 0
+                for entry in feed.entries:
+                    try:
+                        # Skip if we already have this title
+                        if entry.title in used_titles:
                             continue
-                        
-                        print(f"📅 Found article from {pub_date.strftime('%Y-%m-%d')} ({days_old} days old): {title[:50]}...")
+                            
+                        # Get publication date
+                        if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                            pub_date = datetime(*entry.published_parsed[:6])
+                        elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
+                            pub_date = datetime(*entry.updated_parsed[:6])
+                        else:
+                            pub_date = datetime.now()                            # Use Gemini to categorize the news
+                        description = getattr(entry, 'description', '')
+                        category = self.categorize_with_gemini(entry.title, description)
+                        print(f"🏷️ Categorized '{entry.title[:50]}...' as '{category}'")
                         
                         news_item = {
-                            'title': title,
+                            'title': entry.title,
                             'timestamp': pub_date.strftime("%I:%M %p - %b %d"),
                             'source': feed_name,
                             'url': getattr(entry, 'link', ''),
-                            'pub_date': pub_date  # Keep for better sorting
+                            'pub_date': pub_date,
+                            'category': category
                         }
                         news_items.append(news_item)
-                        print(f"✅ Added RECENT AI news from {feed_name}")
+                        used_titles.add(entry.title)
+                        print(f"✅ Added from {feed_name}: {entry.title[:50]}...")
                         
-                        if len(news_items) >= 15:  # Get more items to ensure variety
+                        feed_count += 1
+                        if feed_count >= 2:  # Only get max 2 items from each feed
                             break
-                
-                if len(news_items) >= 15:
-                    break
-                    
-            except (requests.exceptions.SSLError, requests.exceptions.ConnectionError, 
-                    requests.exceptions.Timeout, requests.exceptions.RequestException) as e:
-                print(f"Network error for {feed_name}: {type(e).__name__} - {str(e)[:100]}...")
-                continue
+                            
+                    except Exception as e:
+                        print(f"Error processing entry from {feed_name}: {str(e)}")
+                        continue
+                        
             except Exception as e:
-                print(f"Unexpected error for {feed_name}: {str(e)[:100]}...")
+                print(f"Error fetching {feed_name}: {str(e)}")
                 continue
         
-        # Sort by actual publication date (most recent first)
-        try:
-            news_items.sort(key=lambda x: x.get('pub_date', datetime.now()), reverse=True)
-            print(f"✅ Sorted {len(news_items)} articles by publication date")
-        except Exception as e:
-            print(f"⚠️ Could not sort by publication date: {e}")
-            # Fallback to timestamp sorting
-            try:
-                news_items.sort(key=lambda x: datetime.strptime(x['timestamp'], "%I:%M %p - %b %d"), reverse=True)
-            except:
-                pass  # Keep original order if sorting fails
-        
-        # If we got very few items, add some curated AI headlines with recent timestamps
-        if len(news_items) < 5:
-            print("RSS feeds returned insufficient AI content, adding curated headlines...")
-            curated_ai_news = [
-                {
-                    'title': 'OpenAI unveils GPT-4 Turbo with enhanced multimodal capabilities',
-                    'timestamp': datetime.now().strftime("%I:%M %p - %b %d"),
-                    'source': 'AI Research Daily',
-                    'url': 'https://openai.com/blog'
-                },
-                {
-                    'title': 'Google DeepMind achieves breakthrough in quantum AI computing',
-                    'timestamp': (datetime.now() - timedelta(hours=1)).strftime("%I:%M %p - %b %d"),
-                    'source': 'Tech Innovation Hub',
-                    'url': 'https://deepmind.google/research/'
-                },
-                {
-                    'title': 'Microsoft Copilot integration expands to enterprise workflows',
-                    'timestamp': (datetime.now() - timedelta(hours=2)).strftime("%I:%M %p - %b %d"),
-                    'source': 'Enterprise AI Weekly',
-                    'url': 'https://blogs.microsoft.com/ai/'
-                },
-                {
-                    'title': 'Meta launches new AI model with improved reasoning capabilities',
-                    'timestamp': (datetime.now() - timedelta(hours=3)).strftime("%I:%M %p - %b %d"),
-                    'source': 'ML Development News',
-                    'url': 'https://ai.meta.com/blog/'
-                },
-                {
-                    'title': 'Anthropic Claude 3 sets new benchmarks in AI safety research',
-                    'timestamp': (datetime.now() - timedelta(hours=4)).strftime("%I:%M %p - %b %d"),
-                    'source': 'AI Safety Institute',
-                    'url': 'https://www.anthropic.com/news'
-                },
-                {
-                    'title': 'NVIDIA announces next-generation AI chips for data centers',
-                    'timestamp': (datetime.now() - timedelta(hours=5)).strftime("%I:%M %p - %b %d"),
-                    'source': 'Hardware Today',
-                    'url': 'https://blogs.nvidia.com/blog/category/artificial-intelligence/'
-                },
-                {
-                    'title': 'Apple Intelligence integrates advanced AI across iOS ecosystem',
-                    'timestamp': (datetime.now() - timedelta(hours=6)).strftime("%I:%M %p - %b %d"),
-                    'source': 'Mobile Tech News',
-                    'url': 'https://www.apple.com/newsroom/ai/'
-                }
-            ]
-            
-            # Add different curated items each time to provide variety
-            import random
-            random.shuffle(curated_ai_news)
-            news_items.extend(curated_ai_news[:7-len(news_items)])  # Fill up to 7 items
-            
-        # Sort by publication date and return exactly 5 most recent articles
+        # Sort by publication date and take only top 5
         news_items.sort(key=lambda x: x.get('pub_date', datetime.now()), reverse=True)
-        print(f"RSS feeds returned {len(news_items[:5])} articles")
-        return news_items[:5]  # Return exactly 5 most recent articles
+        final_items = news_items[:5]
+        print(f"📰 Successfully fetched {len(final_items)} items from RSS feeds")
+        return final_items
 
     def format_news_item(self, news_data, position):
-        """Format news item for the queue"""
+        """Format news item for the queue with more detailed timestamp"""
+        pub_date = news_data.get('pub_date', datetime.now())
+        hours_old = (datetime.now() - pub_date).total_seconds() / 3600
+        
+        if hours_old < 1:
+            time_ago = f"{int(hours_old * 60)} minutes ago"
+        else:
+            time_ago = f"{int(hours_old)} hours ago"
+            
         return {
             "id": str(position),
             "title": news_data['title'],
-            "timestamp": f"Released: {news_data['timestamp']}",
+            "timestamp": f"Released: {news_data['timestamp']} ({time_ago})",
             "isLatest": position == 1,
             "source": news_data.get('source', 'Unknown'),
-            "url": news_data.get('url', '')
+            "url": news_data.get('url', ''),
+            "category": news_data.get('category', 'Technology')
         }
 
     def get_fallback_headlines(self):
@@ -400,97 +300,69 @@ class RealNewsUpdateTool(BaseTool):
 
     def execute(self, inputs=None):
         try:
-            print("🔄 Fetching latest AI news...")
+            print("🔄 Fetching latest technology news...")
             
-            # Try RSS feeds first (more reliable than NewsAPI)
-            real_news = self.fetch_from_rss()
+            # Try NewsAPI first
+            print("📰 Fetching from NewsAPI...")
+            real_news = self.fetch_from_newsapi()
             
-            # Try NewsAPI as backup if RSS doesn't return enough
-            if len(real_news) < 5 and self.newsapi_client:
-                newsapi_results = self.fetch_from_newsapi()
-                real_news.extend(newsapi_results)
+            # Only use RSS feeds if NewsAPI didn't return enough items
+            if len(real_news) < 5:
+                print(f"📰 NewsAPI only returned {len(real_news)} items, adding RSS feed news...")
+                rss_results = self.fetch_from_rss()
+                real_news.extend(rss_results)
             
             # If we got real news, build a proper chronological queue
-            if real_news and len(real_news) >= 5:
+            if real_news:
                 print("📰 Building chronological news queue...")
                 
-                # Sort all news by actual release time (most recent first)
-                try:
-                    real_news.sort(key=lambda x: datetime.strptime(x['timestamp'], "%I:%M %p - %b %d"), reverse=True)
-                    print("✅ News sorted by release time")
-                except Exception as e:
-                    print(f"⚠️ Could not sort by time, using original order: {e}")
+                # Sort by actual datetime, not string timestamp
+                real_news.sort(key=lambda x: x.get('pub_date', datetime.now()), reverse=True)
                 
                 # Take exactly 5 most recent different articles
                 self.news_queue = []
                 used_titles = set()
-                position = 1
                 
-                # Sort by timestamp to ensure chronological order
-                real_news.sort(key=lambda x: datetime.strptime(x['timestamp'], "%I:%M %p - %b %d"), reverse=True)
-                
-                # Get exactly 5 most recent unique articles
-                for news_item in real_news:
-                    if news_item['title'] not in used_titles:
+                # Process articles and ensure we get exactly 5 unique ones
+                for idx, news_item in enumerate(real_news):
+                    title_lower = news_item['title'].lower().strip()
+                    if title_lower not in used_titles and len(self.news_queue) < 5:
+                        position = len(self.news_queue) + 1  # This ensures sequential numbering
                         formatted_item = {
-                            "id": str(position),
+                            "id": str(position),  # Sequential number from 1 to 5
                             "title": news_item['title'],
                             "timestamp": f"Released: {news_item['timestamp']}",
-                            "isLatest": position == 1,  # Only the first (most recent) is latest
+                            "isLatest": position == 1,  # First item is always latest
                             "source": news_item.get('source', 'Unknown'),
-                            "url": news_item.get('url', '')
+                            "url": news_item.get('url', ''),
+                            "category": news_item.get('category', 'Technology')
                         }
                         self.news_queue.append(formatted_item)
-                        used_titles.add(news_item['title'])
-                        position += 1
-                        print(f"📅 Added #{position-1}: {news_item['title'][:50]}... ({news_item['timestamp']})")
-                        
-                        # Stop after exactly 5 articles
-                        if position > 5:
-                            break
+                        used_titles.add(title_lower)
+                        print(f"📅 Added #{position}: {news_item['title'][:50]}...")
+                
+                # Fill remaining slots with fallback if we don't have 5 items
+                while len(self.news_queue) < 5:
+                    position = len(self.news_queue) + 1
+                    fallback_item = {
+                        "id": str(position),
+                        "title": f"Technology Update {position}",
+                        "timestamp": f"Released: {datetime.now().strftime('%I:%M %p - %b %d')}",
+                        "isLatest": position == 1,
+                        "source": "Tech News",
+                        "url": "",
+                        "category": "Technology"
+                    }
+                    self.news_queue.append(fallback_item)
+                    print(f"📅 Added fallback #{position}")
                 
                 print(f"✅ Built queue with {len(self.news_queue)} chronologically sorted articles")
                 return json.dumps(self.news_queue)
             
-            elif real_news and len(real_news) > 0:
-                # If we have some news but less than 5, supplement with fallback
-                print("📰 Supplementing with fallback news...")
-                
-                # Use available real news first
-                self.news_queue = []
-                used_titles = set()
-                position = 1
-                
-                for news_item in real_news:
-                    if news_item['title'] not in used_titles and len(self.news_queue) < 5:
-                        formatted_item = {
-                            "id": str(position),
-                            "title": news_item['title'],
-                            "timestamp": f"Released: {news_item['timestamp']}",
-                            "isLatest": position == 1,
-                            "source": news_item.get('source', 'Unknown'),
-                            "url": news_item.get('url', '')
-                        }
-                        self.news_queue.append(formatted_item)
-                        used_titles.add(news_item['title'])
-                        position += 1
-                
-                # Fill remaining slots with fallback headlines
-                fallback_headlines = self.get_fallback_headlines()
-                while len(self.news_queue) < 5 and (position - 1) < len(fallback_headlines):
-                    fallback_item = fallback_headlines[position - 1]
-                    fallback_item["id"] = str(position)
-                    fallback_item["isLatest"] = position == 1 and len(self.news_queue) == 0
-                    self.news_queue.append(fallback_item)
-                    position += 1
-                
-                return json.dumps(self.news_queue)
-            
-            else:
-                # Use fallback if no real news available
-                print("📰 Using fallback headlines...")
-                self.news_queue = self.get_fallback_headlines()
-                return json.dumps(self.news_queue)
+            # Use fallback if no real news available
+            print("📰 Using fallback headlines...")
+            self.news_queue = self.get_fallback_headlines()
+            return json.dumps(self.news_queue)
                 
         except Exception as e:
             print(f"❌ Error in RealNewsUpdateTool: {str(e)}")
@@ -501,6 +373,119 @@ class RealNewsUpdateTool(BaseTool):
                 self.news_queue = self.get_fallback_headlines()
             
             return json.dumps(self.news_queue)
+
+    def __call__(self, args):
+        """Execute the tool"""
+        try:
+            print("\n=== Starting News Fetch Process ===")
+            
+            # Fetch from both sources simultaneously
+            print("\nFetching from both NewsAPI and RSS feeds...")
+            newsapi_items = self.fetch_from_newsapi()
+            rss_items = self.fetch_from_rss()
+            
+            print(f"NewsAPI returned {len(newsapi_items)} items")
+            print(f"RSS feeds returned {len(rss_items)} items")
+            
+            # AI keywords for filtering
+            ai_keywords = [
+                'ai', 'artificial intelligence', 'machine learning', 'deep learning',
+                'neural network', 'chatgpt', 'gpt-4', 'gpt-3', 'llm', 'language model',
+                'openai', 'anthropic', 'claude', 'gemini', 'copilot', 'robot',
+                'automation', 'computer vision', 'nlp', 'autonomous', 'ml'
+            ]
+            
+            # Function to score AI relevance
+            def get_ai_score(item):
+                title = item['title'].lower()
+                score = sum(2 if kw in title else 0 for kw in ai_keywords)  # Double weight for title matches
+                if 'description' in item:
+                    desc = item['description'].lower()
+                    score += sum(1 if kw in desc else 0 for kw in ai_keywords)
+                return score
+
+            # Score and filter both sets of results
+            all_news = []
+            
+            # Process NewsAPI items
+            for item in newsapi_items:
+                score = get_ai_score(item)
+                if score > 0:  # Only include items with some AI relevance
+                    item['ai_score'] = score
+                    item['source_type'] = 'NewsAPI'
+                    all_news.append(item)
+            
+            # Process RSS items
+            for item in rss_items:
+                score = get_ai_score(item)
+                if score > 0:  # Only include items with some AI relevance
+                    item['ai_score'] = score
+                    item['source_type'] = 'RSS Feed'
+                    all_news.append(item)
+            
+            if not all_news:
+                print("No AI-focused news items found!")
+                return []
+            
+            # Sort by publication date first, then by AI relevance score
+            print("\nSorting news by date and AI relevance...")
+            try:
+                all_news.sort(key=lambda x: (x.get('pub_date', datetime.now()), x.get('ai_score', 0)), reverse=True)
+            except Exception as e:
+                print(f"Sorting error: {e}")
+                # Fallback to timestamp-based sorting
+                all_news.sort(key=lambda x: datetime.strptime(x['timestamp'], "%I:%M %p - %b %d"), reverse=True)
+            
+            # Take top 5 most recent, most AI-relevant items
+            final_news = []
+            used_titles = set()
+            
+            for item in all_news:
+                if item['title'].lower() not in used_titles:
+                    news_item = self.format_news_item(item, len(final_news) + 1)
+                    final_news.append(news_item)
+                    used_titles.add(item['title'].lower())
+                    
+                    print(f"\nNews {len(final_news)}: {news_item['title']}")
+                    print(f"Source: {news_item['source']}")
+                    print(f"From: {item['source_type']}")
+                    print(f"AI Relevance Score: {item.get('ai_score', 0)}")
+                    
+                    if len(final_news) >= 5:
+                        break
+            
+            return final_news
+            
+        except Exception as e:
+            print(f"Error in news tool: {str(e)}")
+            return []
+
+    def categorize_with_gemini(self, title, description=""):
+        """Categorize news using Gemini API"""
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            prompt = f"""Analyze this technology news article and categorize it into ONE of these categories:
+            - AI & Machine Learning
+            - Software Development
+            - Hardware & Gadgets
+            - Cybersecurity
+            - Business Tech
+            - Gaming
+            - Innovation
+            - Digital Culture
+
+            Title: {title}
+            Description: {description}
+
+            Return only the category name, nothing else."""
+
+            response = model.generate_content(prompt)
+            category = response.text.strip()
+            print(f"🏷️ Gemini categorized: '{title[:50]}...' as '{category}'")
+            return category
+        except Exception as e:
+            print(f"⚠️ Categorization error: {e}")
+            return "Technology" # Default category
 
 # Create a global instance to maintain state across requests
 real_news_tool_instance = RealNewsUpdateTool()
