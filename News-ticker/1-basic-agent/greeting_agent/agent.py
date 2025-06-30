@@ -45,9 +45,9 @@ class RealNewsUpdateTool(BaseTool):
             "required": []
         }
         
-        # Store news queue (max 5 items, chronologically sorted)
+        # Store news queue (exactly 5 items, chronologically sorted)
         self.news_queue = [] 
-        self.max_news_items = 5
+        self.max_news_items = 5  # Fixed to show exactly 5 news items
         
         # Initialize news sources
         self.newsapi_client = None
@@ -58,16 +58,32 @@ class RealNewsUpdateTool(BaseTool):
             except Exception as e:
                 print(f"NewsAPI initialization failed: {str(e)}")
         
-        # RSS feeds for AI news (backup sources) - More comprehensive list
+        # RSS feeds for AI news and tech news (primary sources) - Focused on Software and AI
         self.rss_feeds = [
+            # AI and ML Specific
             "https://feeds.feedburner.com/venturebeat/SZYF",  # VentureBeat AI
             "https://techcrunch.com/category/artificial-intelligence/feed/",  # TechCrunch AI
             "https://www.artificialintelligence-news.com/feed/",  # AI News
-            "https://feeds.feedburner.com/oreilly/radar",  # O'Reilly Radar
-            "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",  # The Verge AI
-            "https://www.wired.com/feed/tag/ai/latest/rss",  # Wired AI
-            "https://spectrum.ieee.org/rss/blog/artificial-intelligence",  # IEEE Spectrum AI
             "https://blog.google/technology/ai/rss/",  # Google AI Blog
+            "https://blogs.microsoft.com/ai/feed/",  # Microsoft AI Blog
+            "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",  # The Verge AI
+            "https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml",  # ScienceDaily AI
+            
+            # Software Development News
+            "https://stackoverflow.blog/feed/",  # Stack Overflow Blog
+            "https://github.blog/feed/",  # GitHub Blog
+            "https://dev.to/feed",  # DEV Community
+            "https://www.infoq.com/feed/",  # InfoQ
+            "https://www.joelonsoftware.com/feed/",  # Joel on Software
+            "https://martinfowler.com/feed.atom",  # Martin Fowler
+            
+            # Tech Programming News
+            "https://news.ycombinator.com/rss",  # Hacker News
+            "https://feeds.feedburner.com/codinghorror",  # Coding Horror
+            "https://www.codeproject.com/WebServices/NewsRSS.aspx",  # Code Project
+            "https://sdtimes.com/feed/",  # SD Times
+            "https://www.javaworld.com/index.rss",  # JavaWorld
+            "https://www.pythonweekly.com/rss/",  # Python Weekly
         ]
 
     def fetch_from_newsapi(self):
@@ -82,13 +98,12 @@ class RealNewsUpdateTool(BaseTool):
             import ssl
             ssl._create_default_https_context = ssl._create_unverified_context
             
-            # Search for AI-related news with SSL bypass
+            # Search for AI and software tech news with SSL bypass
             articles = self.newsapi_client.get_everything(
-                q='artificial intelligence OR AI OR machine learning OR OpenAI OR Google AI OR ChatGPT',
+                q='(software development OR programming OR artificial intelligence OR AI OR machine learning OR OpenAI OR ChatGPT OR coding OR developer tools OR programming languages OR GitHub OR software engineering)',
                 language='en',
                 sort_by='publishedAt',
-                page_size=10,
-                domains='techcrunch.com,venturebeat.com,theverge.com,wired.com,arstechnica.com'
+                page_size=10
             )
             
             news_items = []
@@ -328,8 +343,10 @@ class RealNewsUpdateTool(BaseTool):
             random.shuffle(curated_ai_news)
             news_items.extend(curated_ai_news[:7-len(news_items)])  # Fill up to 7 items
             
-        print(f"RSS feeds returned {len(news_items[:10])} articles")
-        return news_items[:10]  # Return more articles for better selection
+        # Sort by publication date and return exactly 5 most recent articles
+        news_items.sort(key=lambda x: x.get('pub_date', datetime.now()), reverse=True)
+        print(f"RSS feeds returned {len(news_items[:5])} articles")
+        return news_items[:5]  # Return exactly 5 most recent articles
 
     def format_news_item(self, news_data, position):
         """Format news item for the queue"""
@@ -404,13 +421,17 @@ class RealNewsUpdateTool(BaseTool):
                 except Exception as e:
                     print(f"⚠️ Could not sort by time, using original order: {e}")
                 
-                # Take the top 5 most recent different articles
+                # Take exactly 5 most recent different articles
                 self.news_queue = []
                 used_titles = set()
                 position = 1
                 
+                # Sort by timestamp to ensure chronological order
+                real_news.sort(key=lambda x: datetime.strptime(x['timestamp'], "%I:%M %p - %b %d"), reverse=True)
+                
+                # Get exactly 5 most recent unique articles
                 for news_item in real_news:
-                    if news_item['title'] not in used_titles and len(self.news_queue) < 5:
+                    if news_item['title'] not in used_titles:
                         formatted_item = {
                             "id": str(position),
                             "title": news_item['title'],
@@ -423,6 +444,10 @@ class RealNewsUpdateTool(BaseTool):
                         used_titles.add(news_item['title'])
                         position += 1
                         print(f"📅 Added #{position-1}: {news_item['title'][:50]}... ({news_item['timestamp']})")
+                        
+                        # Stop after exactly 5 articles
+                        if position > 5:
+                            break
                 
                 print(f"✅ Built queue with {len(self.news_queue)} chronologically sorted articles")
                 return json.dumps(self.news_queue)
